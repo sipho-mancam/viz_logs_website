@@ -19,7 +19,15 @@ class VizData(models.Model):
     def get_visibility_data(self):
         """Parse the JSON visibility map and return as dict"""
         try:
-            return json.loads(self.visibility_map)
+            j = json.loads(self.visibility_map)
+            total = 0
+            for key in j:
+                total += j[key]
+            if total > 0:
+                for key in j:
+                    j[key] = round((j[key] / total) * 100, 2)
+
+            return j
         except json.JSONDecodeError:
             return {}
 

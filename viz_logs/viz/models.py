@@ -29,7 +29,7 @@ class VizData(models.Model):
         # Sort by bin number
         sorted_bins = sorted(visibility_data.items(), key=lambda x: int(x[0]))
         return {
-            'labels': [f"{bin_num} %" for bin_num, _ in sorted_bins],
+            'labels': [f"{int(bin_num) - 10} - {int(bin_num)-1 if int(bin_num) < 100 else 100} %" for bin_num, _ in sorted_bins],
             'values': [value for _, value in sorted_bins]
         }
 

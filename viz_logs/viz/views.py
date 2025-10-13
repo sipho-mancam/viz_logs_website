@@ -37,7 +37,7 @@ def index(request):
         queryset = queryset.filter(viz_name=viz_name_filter)
     
     # Get top 10 latest
-    viz_data = queryset[:10]
+    viz_data = queryset[:20]
     
     # Get unique values for filters
     all_group_ids = VizData.objects.values_list('group_id', flat=True).distinct()

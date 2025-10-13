@@ -1,4 +1,5 @@
 {% load static %}
+{% load time_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -348,12 +349,12 @@
                 <div class="filters">
                     <div class="filter-group">
                         <label for="search"><i class="fas fa-search"></i> Search</label>
-                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search by name, group ID, or viz name...">
+                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search by name, camera ID, or viz name...">
                     </div>
                     <div class="filter-group">
-                        <label for="group_id"><i class="fas fa-layer-group"></i> Group ID</label>
+                        <label for="group_id"><i class="fas fa-layer-group"></i> Camera ID</label>
                         <select id="group_id" name="group_id">
-                            <option value="">All Groups</option>
+                            <option value="">All Cameras</option>
                             {% for group in all_group_ids %}
                             <option value="{{ group }}" {% if group_id_filter == group %}selected{% endif %}>{{ group }}</option>
                             {% endfor %}
@@ -398,7 +399,7 @@
                         <th class="checkbox-cell">
                             <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
                         </th>
-                        <th>Group ID</th>
+                        <th>Camera ID</th>
                         <th>Display Name</th>
                         <th>Viz Name</th>
                         <th>Time on Air (s)</th>
@@ -415,8 +416,8 @@
                         <td>{{ item.group_id }}</td>
                         <td>{{ item.display_name|default:"N/A" }}</td>
                         <td>{{ item.viz_name|default:"N/A" }}</td>
-                        <td>{{ item.time_on_air|floatformat:2|default:"N/A" }}</td>
-                        <td>{{ item.time_on_camera|floatformat:2|default:"N/A" }}</td>
+                        <td>{{ item.time_on_air|format_time_duration }}</td>
+                        <td>{{ item.time_on_camera|format_time_duration }}</td>
                         <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>
                     </tr>
                     {% endfor %}
@@ -469,11 +470,7 @@
             });
             updateSelection();
         }
-
-        setInterval(() => {
-            
-        }, 5000);
-
+        
         function updateSelection() {
             const checkboxes = document.querySelectorAll('.row-checkbox:checked');
             const count = checkboxes.length;

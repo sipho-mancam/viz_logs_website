@@ -1,18 +1,17 @@
-version: '3.8'
-
 services:
   web:
     build: .
-    command: gunicorn viz_logs.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn viz_logs.wsgi:application --bind 0.0.0.0:8000 --chdir /app/viz_logs
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=viz_logs.settings
-      - MYSQL_DATABASE=vizlogs
-      - MYSQL_USER=vizuser
-      - MYSQL_PASSWORD=vizpassword
+      - MYSQL_DATABASE=vr_logs
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - PYTHONPATH=/app/viz_logs
     depends_on:
       - db
 
@@ -22,11 +21,11 @@ services:
       - mysql_data:/var/lib/mysql
     environment:
       - MYSQL_DATABASE=vr_logs
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=root
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=admin
       - MYSQL_ROOT_PASSWORD=root
     ports:
-      - "3306:3306"
+      - "3307:3306"
 
 volumes:
   mysql_data:

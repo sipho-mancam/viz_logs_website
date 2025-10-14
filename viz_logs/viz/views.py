@@ -12,6 +12,18 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 from io import BytesIO
 from datetime import datetime
 
+def format_time_duration(seconds):
+    if seconds is None:
+        return "N/A"
+    try:
+        seconds = float(seconds)
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    except (ValueError, TypeError):
+        return "00:00:00"
+
 def index(request):
     """Main view to display the data table"""
     # Get filter parameters
@@ -78,9 +90,21 @@ def export_pdf(request):
     
     # Create PDF in memory
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                  topMargin=0.5*inch, bottomMargin=0.5*inch)
     elements = []
     styles = getSampleStyleSheet()
+
+     # Add letterhead to all pages
+    def header(canvas, doc):
+        # Draw the letterhead image
+        canvas.saveState()
+        img_path = 'static/image.png'  # Adjust path as needed
+        print(f"left margin: {doc.leftMargin}, top margin: {doc.topMargin}, width: {doc.width}, height: {inch}")
+        canvas.drawImage(img_path, doc.leftMargin-inch, doc.height - 0.5*inch, 
+                        width=doc.width+2*inch, height=(1.8*inch), preserveAspectRatio=False)
+        canvas.restoreState()
+
     
     # Custom styles
     title_style = ParagraphStyle(
@@ -88,7 +112,7 @@ def export_pdf(request):
         parent=styles['Heading1'],
         fontSize=18,
         textColor=colors.HexColor('#2c3e50'),
-        spaceAfter=20,
+        spaceAfter=10,
     )
     
     heading_style = ParagraphStyle(
@@ -98,11 +122,22 @@ def export_pdf(request):
         textColor=colors.HexColor('#34495e'),
         spaceAfter=10,
     )
+
+    bar_title = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading3'],
+        fontSize=14,
+        textColor=colors.HexColor('#34495e'),
+        spaceAfter=10,
+        alignment=1,  # Center alignment
+    )
+    
     
     # Add title
-    title = Paragraph(f"Visualization Data Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}", title_style)
+    title = Paragraph(f"Virtual Logos Data Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}", title_style)
+    elements.append(Spacer(1, inch))
     elements.append(title)
-    elements.append(Spacer(1, 0.2*inch))
+    # elements.append(Spacer(1, 0.2*inch))
     
     # Get selected data
     viz_data_items = VizData.objects.filter(id__in=selected_ids).order_by('-created_at')
@@ -118,12 +153,12 @@ def export_pdf(request):
         
         # Add details table
         details_data = [
-            ['Group ID:', item.group_id],
+            ['Camera ID:', item.group_id],
             ['Display Name:', item.display_name or 'N/A'],
             ['Viz Name:', item.viz_name or 'N/A'],
-            ['Time on Air:', f"{item.time_on_air:.2f}s" if item.time_on_air else 'N/A'],
-            ['Time on Camera:', f"{item.time_on_camera:.2f}s" if item.time_on_camera else 'N/A'],
-            ['Created At:', item.created_at.strftime('%Y-%m-%d %H:%M:%S')],
+            ['Time on Air:', f"{format_time_duration(item.time_on_air)}"],
+            ['Time on Camera:', f"{format_time_duration(item.time_on_camera)}"],
+            ['Date Time:', item.created_at.strftime('%Y-%m-%d %H:%M:%S')],
         ]
         
         details_table = Table(details_data, colWidths=[2*inch, 4*inch])
@@ -154,17 +189,24 @@ def export_pdf(request):
             chart.categoryAxis.categoryNames = histogram_data['labels']
             chart.categoryAxis.labels.angle = 45
             chart.categoryAxis.labels.fontSize = 8
+            chart.categoryAxis.labels.dy = -15
+            chart.categoryAxis.labels.fontName = 'Helvetica'
             chart.valueAxis.valueMin = 0
+            chart.valueAxis.labels.fontSize = 8
+            chart.valueAxis.labels.dx = -10
+            chart.valueAxis.labels.fontName = 'Helvetica'
             chart.valueAxis.valueMax = max(histogram_data['values']) * 1.1 if histogram_data['values'] else 100
             chart.bars[0].fillColor = colors.HexColor('#3498db')
+            chart.bars[0].strokeColor = colors.HexColor('#2980b9')
+            chart.bars[0].strokeWidth = 0.5
+
             
             drawing.add(chart)
-            elements.append(Paragraph("Visibility Map Histogram:", styles['Heading3']))
-            elements.append(Spacer(1, 0.1*inch))
+            elements.append(Paragraph("Visibility Map Histogram:", bar_title))
             elements.append(drawing)
     
     # Build PDF
-    doc.build(elements)
+    doc.build(elements, onFirstPage=header)
     buffer.seek(0)
     
     # Return PDF response

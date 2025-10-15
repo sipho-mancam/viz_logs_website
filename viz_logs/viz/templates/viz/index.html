@@ -31,7 +31,7 @@
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
+            margin-bottom: 30px;  
         }
 
         h1 {
@@ -334,6 +334,12 @@
                 padding: 12px 8px;
             }
         }
+
+        .logo {
+            position: absolute;
+            top: 40px;
+            right: 8%;
+        }
     </style>
 </head>
 <body>
@@ -342,6 +348,10 @@
         <div class="header">
             <h1><i class="fas fa-chart-bar"></i> Visualization Data Dashboard</h1>
             <p class="subtitle">View and analyze visualization metrics with interactive histograms</p>
+
+            <div class="logo">
+                <img src="{% static 'SEB 4 empty.png' %}" alt="Company Logo" style="height: 60px; width: 60px; margin-top: 15px;">
+            </div>
         </div>
 
         <div class="controls">
@@ -407,7 +417,7 @@
                         <th>Created At</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="tab-back">
                     {% for item in viz_data %}
                     <tr onclick="showHistogram({{ item.id }})" data-id="{{ item.id }}">
                         <td class="checkbox-cell" onclick="event.stopPropagation()">

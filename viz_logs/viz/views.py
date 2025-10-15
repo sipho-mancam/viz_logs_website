@@ -187,10 +187,12 @@ def export_pdf(request):
             chart.width = 350
             chart.data = [histogram_data['values']]
             chart.categoryAxis.categoryNames = histogram_data['labels']
+            
             chart.categoryAxis.labels.angle = 45
             chart.categoryAxis.labels.fontSize = 8
             chart.categoryAxis.labels.dy = -15
             chart.categoryAxis.labels.fontName = 'Helvetica'
+            
             chart.valueAxis.valueMin = 0
             chart.valueAxis.labels.fontSize = 8
             chart.valueAxis.labels.dx = -10
@@ -202,7 +204,7 @@ def export_pdf(request):
 
             
             drawing.add(chart)
-            elements.append(Paragraph("Visibility Map Histogram:", bar_title))
+            elements.append(Paragraph("Percentage Visibility v. Time on Screen (%)", bar_title))
             elements.append(drawing)
     
     # Build PDF

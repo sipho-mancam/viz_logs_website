@@ -23,6 +23,46 @@ def format_time_duration(seconds):
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     except (ValueError, TypeError):
         return "00:00:00"
+    
+
+def combine_groups_on_viz_name(data:list[VizData])->list[VizData]:
+    """Combine VizData entries by viz_name, summing time_on_air and time_on_camera"""
+    result = {}
+    for item in data:
+        if item.sponsor_logo_name not in result:
+            result[item.sponsor_logo_name] = {
+                'group_id': item.group_id,
+                'display_name': item.display_name,
+                'sponsor_logo_name': item.sponsor_logo_name,
+                'time_on_air': item.time_on_air or 0,
+                'visiblity_map': item.visibility_map,
+                'time_on_camera': item.time_on_camera or 0,
+                'created_at': item.created_at
+            }
+        else:
+            result[item.sponsor_logo_name]['time_on_air'] += item.time_on_air or 0
+            result[item.sponsor_logo_name]['time_on_camera'] += item.time_on_camera or 0
+            result[item.sponsor_logo_name]['group_id'] += " + " + item.group_id
+            # Keep the latest created_at
+            if item.created_at > result[item.sponsor_logo_name]['created_at']:
+                result[item.sponsor_logo_name]['created_at'] = item.created_at
+                
+                result[item.sponsor_logo_name]['display_name'] = item.display_name
+    
+    combined_list = []
+    for key in result:
+        combined_item = VizData(
+            group_id=result[key]['group_id'],
+            display_name=result[key]['display_name'],
+            sponsor_logo_name=result[key]['sponsor_logo_name'],
+            time_on_air=result[key]['time_on_air'],
+            time_on_camera=result[key]['time_on_camera'],
+            created_at=result[key]['created_at']
+        )
+        combined_list.append(combined_item)
+
+    return combined_list
+    
 
 def index(request):
     """Main view to display the data table"""
@@ -39,21 +79,21 @@ def index(request):
         queryset = queryset.filter(
             Q(display_name__icontains=search) |
             Q(group_id__icontains=search) |
-            Q(viz_name__icontains=search)
+            Q(sponsor_logo_name__icontains=search)
         )
     
     if group_id_filter:
         queryset = queryset.filter(group_id=group_id_filter)
     
     if viz_name_filter:
-        queryset = queryset.filter(viz_name=viz_name_filter)
+        queryset = queryset.filter(sponsor_logo_name=viz_name_filter)
     
     # Get top 10 latest
     viz_data = queryset[:20]
     
     # Get unique values for filters
     all_group_ids = VizData.objects.values_list('group_id', flat=True).distinct()
-    all_viz_names = VizData.objects.values_list('viz_name', flat=True).distinct()
+    all_viz_names = VizData.objects.values_list('sponsor_logo_name', flat=True).distinct()
     
     context = {
         'viz_data': viz_data,
@@ -75,7 +115,7 @@ def get_histogram_data(request, pk):
             'success': True,
             'data': histogram_data,
             'display_name': viz_data.display_name or viz_data.group_id,
-            'viz_name': viz_data.viz_name
+            'viz_name': viz_data.sponsor_logo_name
         })
     except VizData.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Data not found'}, status=404)
@@ -141,13 +181,17 @@ def export_pdf(request):
     
     # Get selected data
     viz_data_items = VizData.objects.filter(id__in=selected_ids).order_by('-created_at')
+
+    currentVizItems = [item for item in viz_data_items]
+
+    combined_items = combine_groups_on_viz_name(currentVizItems)
     
     for idx, item in enumerate(viz_data_items):
         if idx > 0:
             elements.append(PageBreak())
         
         # Add item heading
-        item_title = f"{item.display_name or item.group_id} - {item.viz_name or 'N/A'}"
+        item_title = f"{item.display_name or item.group_id} - {item.sponsor_logo_name or 'N/A'}"
         elements.append(Paragraph(item_title, heading_style))
         elements.append(Spacer(1, 0.1*inch))
         
@@ -155,7 +199,70 @@ def export_pdf(request):
         details_data = [
             ['Camera ID:', item.group_id],
             ['Display Name:', item.display_name or 'N/A'],
-            ['Viz Name:', item.viz_name or 'N/A'],
+            ['Sponsor Logo Name:', item.sponsor_logo_name or 'N/A'],
+            ['Time on Air:', f"{format_time_duration(item.time_on_air)}"],
+            ['Time on Camera:', f"{format_time_duration(item.time_on_camera)}"],
+            ['Date Time:', item.created_at.strftime('%Y-%m-%d %H:%M:%S')],
+        ]
+        
+        details_table = Table(details_data, colWidths=[2*inch, 4*inch])
+        details_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        elements.append(details_table)
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Add histogram
+        histogram_data = item.get_histogram_data()
+        if histogram_data['values']:
+            # Create chart
+            drawing = Drawing(400, 250)
+            chart = VerticalBarChart()
+            chart.x = 30
+            chart.y = 30
+            chart.height = 180
+            chart.width = 350
+            chart.data = [histogram_data['values']]
+            chart.categoryAxis.categoryNames = histogram_data['labels']
+            
+            chart.categoryAxis.labels.angle = 45
+            chart.categoryAxis.labels.fontSize = 8
+            chart.categoryAxis.labels.dy = -15
+            chart.categoryAxis.labels.fontName = 'Helvetica'
+            
+            chart.valueAxis.valueMin = 0
+            chart.valueAxis.labels.fontSize = 8
+            chart.valueAxis.labels.dx = -10
+            chart.valueAxis.labels.fontName = 'Helvetica'
+            chart.valueAxis.valueMax = max(histogram_data['values']) * 1.1 if histogram_data['values'] else 100
+            chart.bars[0].fillColor = colors.HexColor('#3498db')
+            chart.bars[0].strokeColor = colors.HexColor('#2980b9')
+            chart.bars[0].strokeWidth = 0.5
+
+            
+            drawing.add(chart)
+            elements.append(Paragraph("Percentage Visibility v. Time on Screen (%)", bar_title))
+            elements.append(drawing)
+
+    for idx, item in enumerate(combined_items):
+        
+        # Add item heading
+        item_title = f"{item.display_name or item.group_id} - {item.sponsor_logo_name or 'N/A'}"
+        elements.append(Paragraph(item_title, heading_style))
+        elements.append(Spacer(1, 0.1*inch))
+        
+        # Add details table
+        details_data = [
+            ['Camera ID:', item.group_id],
+            ['Display Name:', item.display_name or 'N/A'],
+            ['Sponsor Logo Name:', item.sponsor_logo_name or 'N/A'],
             ['Time on Air:', f"{format_time_duration(item.time_on_air)}"],
             ['Time on Camera:', f"{format_time_duration(item.time_on_camera)}"],
             ['Date Time:', item.created_at.strftime('%Y-%m-%d %H:%M:%S')],

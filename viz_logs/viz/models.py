@@ -7,7 +7,7 @@ class VizData(models.Model):
     display_name = models.CharField(max_length=255, null=True, blank=True)
     time_on_air = models.FloatField(null=True, blank=True)
     time_on_camera = models.FloatField(null=True, blank=True)
-    viz_name = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    sponsor_logo_name = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     visibility_map = models.TextField(max_length=16383)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -42,4 +42,4 @@ class VizData(models.Model):
         }
 
     def __str__(self):
-        return f"{self.display_name or self.group_id} - {self.viz_name}"
+        return f"{self.display_name or self.group_id} - {self.sponsor_logo_name}"

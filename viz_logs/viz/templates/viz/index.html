@@ -359,7 +359,7 @@
                 <div class="filters">
                     <div class="filter-group">
                         <label for="search"><i class="fas fa-search"></i> Search</label>
-                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search by name, camera ID, or viz name...">
+                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search by name, camera ID, or sponsor logo name...">
                     </div>
                     <div class="filter-group">
                         <label for="group_id"><i class="fas fa-layer-group"></i> Camera ID</label>
@@ -371,7 +371,7 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="viz_name"><i class="fas fa-eye"></i> Viz Name</label>
+                        <label for="viz_name"><i class="fas fa-eye"></i> Sponsor Logo Name</label>
                         <select id="viz_name" name="viz_name">
                             <option value="">All Visualizations</option>
                             {% for viz in all_viz_names %}
@@ -411,7 +411,7 @@
                         </th>
                         <th>Camera ID</th>
                         <th>Display Name</th>
-                        <th>Viz Name</th>
+                        <th>Sponsor Logo Name</th>
                         <th>Time on Air (s)</th>
                         <th>Time on Camera (s)</th>
                         <th>Created At</th>
@@ -425,7 +425,7 @@
                         </td>
                         <td>{{ item.group_id }}</td>
                         <td>{{ item.display_name|default:"N/A" }}</td>
-                        <td>{{ item.viz_name|default:"N/A" }}</td>
+                        <td>{{ item.sponsor_logo_name|default:"N/A" }}</td>
                         <td>{{ item.time_on_air|format_time_duration }}</td>
                         <td>{{ item.time_on_camera|format_time_duration }}</td>
                         <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>

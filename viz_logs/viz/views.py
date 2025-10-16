@@ -251,7 +251,13 @@ def export_pdf(request):
             elements.append(Paragraph("Percentage Visibility v. Time on Screen (%)", bar_title))
             elements.append(drawing)
 
+    elements.append(Spacer(1, 0.5*inch))
+    elements.append(Paragraph(f"Combined Logo Time", title_style))
+    elements.append(PageBreak())
+
     for idx, item in enumerate(combined_items):
+        if idx % 3 == 0 and idx > 0:
+            elements.append(PageBreak())
         
         # Add item heading
         item_title = f"{item.display_name or item.group_id} - {item.sponsor_logo_name or 'N/A'}"

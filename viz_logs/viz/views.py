@@ -70,6 +70,7 @@ def index(request):
     search = request.GET.get('search', '')
     group_id_filter = request.GET.get('group_id', '')
     viz_name_filter = request.GET.get('viz_name', '')
+    created_at_filter = request.GET.get('created_at', '')
     
     # Base query
     queryset = VizData.objects.all()
@@ -79,7 +80,8 @@ def index(request):
         queryset = queryset.filter(
             Q(display_name__icontains=search) |
             Q(group_id__icontains=search) |
-            Q(sponsor_logo_name__icontains=search)
+            Q(sponsor_logo_name__icontains=search)|
+            Q(created_at__icontains=search),
         )
     
     if group_id_filter:
@@ -88,20 +90,26 @@ def index(request):
     if viz_name_filter:
         queryset = queryset.filter(sponsor_logo_name=viz_name_filter)
     
+    if created_at_filter:
+        queryset = queryset.filter(created_at=created_at_filter)
+    
     # Get top 10 latest
     viz_data = queryset[:20]
     
     # Get unique values for filters
     all_group_ids = VizData.objects.values_list('group_id', flat=True).distinct()
     all_viz_names = VizData.objects.values_list('sponsor_logo_name', flat=True).distinct()
+    all_dates = [date["created_at"] for date in VizData.objects.values('created_at').distinct()]
     
     context = {
         'viz_data': viz_data,
         'search': search,
         'group_id_filter': group_id_filter,
         'viz_name_filter': viz_name_filter,
+        'created_at_filter': created_at_filter,
         'all_group_ids': all_group_ids,
         'all_viz_names': all_viz_names,
+        'all_dates': all_dates,
     }
     
     return render(request, 'viz/index.html', context)

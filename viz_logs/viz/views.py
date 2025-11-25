@@ -74,6 +74,7 @@ def index(request):
     
     # Base query
     queryset = VizData.objects.all()
+   
     
     # Apply filters
     if search:
@@ -91,15 +92,35 @@ def index(request):
         queryset = queryset.filter(sponsor_logo_name=viz_name_filter)
     
     if created_at_filter:
-        queryset = queryset.filter(created_at=created_at_filter)
+        # Accept either "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD" from the template,
+        # parse the value and filter by the date portion only.
+        date_val = None
+        try:
+            date_val = datetime.strptime(created_at_filter, '%Y-%m-%d %H:%M:%S').date()
+        except ValueError:
+            try:
+                date_val = datetime.strptime(created_at_filter, '%Y-%m-%d').date()
+            except ValueError:
+                date_val = None
+
+        if date_val:
+            queryset = queryset.filter(created_at__date=date_val)
+        else:
+            # Fallback: try the original exact match if parsing failed
+            print("Falling Back to default")
+            queryset = queryset.filter(created_at=created_at_filter)
     
     # Get top 10 latest
-    viz_data = queryset[:20]
+    viz_data = queryset.order_by('group_id')
     
     # Get unique values for filters
     all_group_ids = VizData.objects.values_list('group_id', flat=True).distinct()
     all_viz_names = VizData.objects.values_list('sponsor_logo_name', flat=True).distinct()
-    all_dates = [date["created_at"] for date in VizData.objects.values('created_at').distinct()]
+    all_dates = [date["created_at"].date() for date in VizData.objects.values('created_at').distinct()]
+    all_dates = set(all_dates)
+    all_dates = list(all_dates)
+    all_dates.sort(key=lambda x: x.toordinal(), reverse=True)
+    
     
     context = {
         'viz_data': viz_data,

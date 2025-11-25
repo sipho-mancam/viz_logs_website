@@ -386,7 +386,7 @@
                         <label for="created_at"><i class="fas fa-eye"></i>Production Date</label>
                         <select id="created_at" name="created_at">
                             {% for date in all_dates %}
-                            <option value="{{ date|date:"Y-m-d H:i:s" }}" {% if date|date:"Y-m-d H:i:s" == created_at_filter %}selected{% endif %}>{{ date }}</option>
+                            <option value="{{ date|date:"Y-m-d" }}" {% if date|date:"Y-m-d" == created_at_filter %}selected{% endif %}>{{ date }}</option>
                             {% endfor %}
                         </select>
                     </div>
